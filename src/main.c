@@ -1,5 +1,3 @@
-/* main.c: Terminal Invaders com menu, game over, vitória e seleção de dificuldade a 60 FPS */
-
 /* Includes */
 #include "keyboard.h"
 #include "screen.h"
@@ -20,6 +18,7 @@
 #define SHIP_CHAR '^'
 #define ALIEN_CHAR 'W'
 #define BULLET_CHAR '|'
+#define SCORE_FILE "scores.txt"
 
 /* Tipos */
 typedef struct { int x, y; bool alive; } Alien;
@@ -28,12 +27,14 @@ typedef struct Bullet { int x, y; struct Bullet* next; } Bullet;
 /* Protótipos */
 void init_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS]);
 bool update_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* dx);
-void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS]);
+void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* score);
 bool aliens_exist(Alien aliens[ALIEN_ROWS][ALIEN_COLS]);
 void draw_game(Alien aliens[ALIEN_ROWS][ALIEN_COLS], Bullet* bullets, int ship_x);
 void show_menu(int* alien_interval);
 void show_game_over(void);
 void show_victory(void);
+void save_score(int score);
+void display_top_scores(void);
 
 /* Implementações */
 
@@ -67,7 +68,7 @@ bool update_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* dx) {
     return true;
 }
 
-void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
+void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* score) {
     Bullet** p = head;
     while(*p) {
         Bullet* b = *p;
@@ -84,6 +85,7 @@ void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
                 if(a->alive && a->x == b->x && a->y == b->y) {
                     a->alive = false;
                     hit = true;
+                    (*score)++;
                     break;
                 }
             }
@@ -124,10 +126,11 @@ void draw_game(Alien aliens[ALIEN_ROWS][ALIEN_COLS], Bullet* bullets, int ship_x
 
 void show_menu(int* alien_interval) {
     screenInit(0);
-    printf("=== TERMINAL INVADERS ===\n");
+    display_top_scores();
+    printf("\n=== TERMINAL INVADERS ===\n");
     printf("1 - Fácil\n");      // invasores a cada 6 frames
     printf("2 - Médio\n");      // invasores a cada 4 frames
-    printf("3 - Difícil\n");    // invasores a cada 3 frames    
+    printf("3 - Difícil\n");    // invasores a cada 3 frames
     printf("Q - Sair\n");
     int k;
     do {
@@ -147,13 +150,35 @@ void show_menu(int* alien_interval) {
 void show_game_over(void) {
     screenInit(0);
     printf("### GAME OVER ###\n");
-    printf("Pressione ENTER para retornar\n");
 }
 
 void show_victory(void) {
     screenInit(0);
     printf("*** VOCÊ VENCEU! ***\n");
-    printf("Pressione ENTER para retornar\n");
+}
+
+void save_score(int score) {
+    char name[32];
+    printf("\nDigite seu nome: ");
+    fscanf(stdin, "%31s", name);
+    FILE* f = fopen(SCORE_FILE, "a");
+    if(!f) return;
+    fprintf(f, "%s %d\n", name, score);
+    fclose(f);
+}
+
+void display_top_scores(void) {
+    FILE* f = fopen(SCORE_FILE, "r");
+    if(!f) {
+        printf("Nenhum top score registrado ainda.\n");
+        return;
+    }
+    printf("== Top Scores ==\n");
+    char name[32];
+    int sc;
+    while(fscanf(f, "%31s %d", name, &sc) == 2)
+        printf("%s : %d\n", name, sc);
+    fclose(f);
 }
 
 int main(void) {
@@ -162,8 +187,8 @@ int main(void) {
     srand((unsigned) time(NULL));
 
     bool exit_program = false;
-    const int frame_delay = 1000000 / 60;
-    int alien_interval = 6;
+    const int frame_delay = 1000000 / 60;  // 60 FPS
+    int alien_interval = 6;                // default fácil
     int dx = 1;
 
     while(!exit_program) {
@@ -176,6 +201,7 @@ int main(void) {
         int ship_x = MAXX / 2;
         bool running = true;
         int frame_count = 0;
+        int score = 0;
 
         while(running) {
             screenClear();
@@ -196,26 +222,30 @@ int main(void) {
             if(frame_count % alien_interval == 0)
                 if(!update_aliens(aliens, &dx)) break;
 
-            update_bullets(&bullets, aliens);
+            update_bullets(&bullets, aliens, &score);
             draw_game(aliens, bullets, ship_x);
             usleep(frame_delay);
             if(!aliens_exist(aliens)) break;
             frame_count++;
         }
 
-        /* Limpa balas */
+        /* limpa balas */
         while(bullets) {
             Bullet* t = bullets;
             bullets = bullets->next;
             free(t);
         }
 
-        /* Mostra tela apropriada */
-        if(!aliens_exist(aliens))
+        /* mostra tela e salva score se venceu */
+        if(!aliens_exist(aliens)) {
             show_victory();
-        else
+            save_score(score);
+        } else {
             show_game_over();
+        }
 
+        printf("\nPontuação final: %d\n", score);
+        printf("Pressione ENTER para retornar ao menu...");
         while(readch()!='\n');
     }
 
