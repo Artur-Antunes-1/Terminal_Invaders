@@ -74,3 +74,6 @@ TerminalInvaders/
 
 * **Autor**: Artur Antunes
 * **Email**: [aas4@cesar.school](mailto:aas4@cesar.school)
+
+## 🎮 Demonstração
+![Demonstração](assets/demo.gif)
