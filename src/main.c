@@ -1,4 +1,4 @@
-/* main.c: Terminal Invaders com menu, game over e seleção de dificuldade a 60 FPS */
+/* main.c: Terminal Invaders com menu, game over, vitória e seleção de dificuldade a 60 FPS */
 
 /* Includes */
 #include "keyboard.h"
@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <time.h>
 
-/* Constantes de tela e jogo */
+/* Constantes */
 #define MAXX 80
 #define MAXY 24
 #define ALIEN_ROWS 3
@@ -21,10 +21,11 @@
 #define ALIEN_CHAR 'W'
 #define BULLET_CHAR '|'
 
-/* Prototipos */
+/* Tipos */
 typedef struct { int x, y; bool alive; } Alien;
 typedef struct Bullet { int x, y; struct Bullet* next; } Bullet;
 
+/* Protótipos */
 void init_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS]);
 bool update_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* dx);
 void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS]);
@@ -32,10 +33,10 @@ bool aliens_exist(Alien aliens[ALIEN_ROWS][ALIEN_COLS]);
 void draw_game(Alien aliens[ALIEN_ROWS][ALIEN_COLS], Bullet* bullets, int ship_x);
 void show_menu(int* alien_interval);
 void show_game_over(void);
+void show_victory(void);
 
 /* Implementações */
 
-/* Inicializa invasores em formação */
 void init_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
     for(int r = 0; r < ALIEN_ROWS; r++)
         for(int c = 0; c < ALIEN_COLS; c++) {
@@ -45,10 +46,8 @@ void init_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
         }
 }
 
-/* Atualiza posição dos invasores; retorna false se chegarem na base */
 bool update_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* dx) {
     bool drop = false;
-    /* Verifica colisão com borda */
     for(int r = 0; r < ALIEN_ROWS && !drop; r++)
         for(int c = 0; c < ALIEN_COLS; c++) {
             Alien* a = &aliens[r][c];
@@ -57,8 +56,6 @@ bool update_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* dx) {
             if(nx < 1 || nx >= MAXX - 1) { drop = true; break; }
         }
     if(drop) *dx = -(*dx);
-
-    /* Move invasores */
     for(int r = 0; r < ALIEN_ROWS; r++)
         for(int c = 0; c < ALIEN_COLS; c++) {
             Alien* a = &aliens[r][c];
@@ -70,7 +67,6 @@ bool update_aliens(Alien aliens[ALIEN_ROWS][ALIEN_COLS], int* dx) {
     return true;
 }
 
-/* Atualiza balas, destrói as que saem da tela ou colidem com invasores */
 void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
     Bullet** p = head;
     while(*p) {
@@ -100,19 +96,15 @@ void update_bullets(Bullet** head, Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
     }
 }
 
-/* Verifica se ainda há invasores vivos */
 bool aliens_exist(Alien aliens[ALIEN_ROWS][ALIEN_COLS]) {
     for(int r = 0; r < ALIEN_ROWS; r++)
         for(int c = 0; c < ALIEN_COLS; c++)
-            if(aliens[r][c].alive)
-                return true;
+            if(aliens[r][c].alive) return true;
     return false;
 }
 
-/* Desenha invasores, balas e navinha */
 void draw_game(Alien aliens[ALIEN_ROWS][ALIEN_COLS], Bullet* bullets, int ship_x) {
     screenInit(1);
-    /* Desenha invasores */
     for(int r = 0; r < ALIEN_ROWS; r++)
         for(int c = 0; c < ALIEN_COLS; c++) {
             Alien* a = &aliens[r][c];
@@ -121,31 +113,28 @@ void draw_game(Alien aliens[ALIEN_ROWS][ALIEN_COLS], Bullet* bullets, int ship_x
                 putchar(ALIEN_CHAR);
             }
         }
-    /* Desenha balas */
     for(Bullet* b = bullets; b; b = b->next) {
         screenGotoxy(b->x, b->y);
         putchar(BULLET_CHAR);
     }
-    /* Desenha navinha */
     screenGotoxy(ship_x, MAXY - 2);
     putchar(SHIP_CHAR);
     screenUpdate();
 }
 
-/* Menu de seleção de dificuldade (controle do intervalo de frames para invasores) */
 void show_menu(int* alien_interval) {
     screenInit(0);
     printf("=== TERMINAL INVADERS ===\n");
     printf("1 - Fácil\n");      // invasores a cada 6 frames
     printf("2 - Médio\n");      // invasores a cada 4 frames
-    printf("3 - Difícil\n");    // invasores a cada 3 frames
+    printf("3 - Difícil\n");    // invasores a cada 3 frames    
     printf("Q - Sair\n");
     int k;
     do {
         k = readch();
-    } while(k != '1' && k != '2' && k != '3' && k != 'q' && k != 'Q');
-    if(k == 'q' || k == 'Q') {
-        *alien_interval = -1;  // sinaliza saída
+    } while(k!='1' && k!='2' && k!='3' && k!='q' && k!='Q');
+    if(k=='q' || k=='Q') {
+        *alien_interval = -1;
         return;
     }
     switch(k) {
@@ -155,29 +144,32 @@ void show_menu(int* alien_interval) {
     }
 }
 
-/* Tela de Game Over */
 void show_game_over(void) {
     screenInit(0);
     printf("### GAME OVER ###\n");
     printf("Pressione ENTER para retornar\n");
 }
 
-/* Função principal */
+void show_victory(void) {
+    screenInit(0);
+    printf("*** VOCÊ VENCEU! ***\n");
+    printf("Pressione ENTER para retornar\n");
+}
+
 int main(void) {
     keyboardInit();
     timerInit(1);
     srand((unsigned) time(NULL));
 
     bool exit_program = false;
-    const int frame_delay = 1000000 / 60;  // 60 FPS (~16667 µs por frame)
-    int alien_interval = 6;                // default: fácil
-    int dx = 1;                            // direção inicial dos invasores
+    const int frame_delay = 1000000 / 60;
+    int alien_interval = 6;
+    int dx = 1;
 
     while(!exit_program) {
         show_menu(&alien_interval);
         if(alien_interval < 0) break;
 
-        /* Inicializa estado de jogo */
         Alien aliens[ALIEN_ROWS][ALIEN_COLS];
         init_aliens(aliens);
         Bullet* bullets = NULL;
@@ -185,55 +177,46 @@ int main(void) {
         bool running = true;
         int frame_count = 0;
 
-        /* Loop principal do jogo */
         while(running) {
             screenClear();
-
-            /* Entrada do jogador */
             if(keyhit()) {
                 int kk = readch();
-                if(kk == 'a' && ship_x > 1)      ship_x--;
-                if(kk == 'd' && ship_x < MAXX-2) ship_x++;
-                if(kk == ' ') {
+                if(kk=='a' && ship_x>1)      ship_x--;
+                if(kk=='d' && ship_x<MAXX-2) ship_x++;
+                if(kk==' ') {
                     Bullet* b = malloc(sizeof *b);
                     b->x = ship_x;
                     b->y = MAXY - 3;
                     b->next = bullets;
                     bullets = b;
                 }
-                if(kk == 'q') running = false;
+                if(kk=='q') running = false;
             }
 
-            /* Atualiza invasores em intervalos definidos */
-            if(frame_count % alien_interval == 0) {
+            if(frame_count % alien_interval == 0)
                 if(!update_aliens(aliens, &dx)) break;
-            }
 
-            /* Atualiza balas e detecta colisões */
             update_bullets(&bullets, aliens);
-
-            /* Desenha tudo */
             draw_game(aliens, bullets, ship_x);
-
-            /* Aguarda próximo frame */
             usleep(frame_delay);
-
-            /* Verifica vitória */
             if(!aliens_exist(aliens)) break;
-
             frame_count++;
         }
 
-        /* Limpa balas restantes */
+        /* Limpa balas */
         while(bullets) {
             Bullet* t = bullets;
             bullets = bullets->next;
             free(t);
         }
 
-        show_game_over();
-        /* Espera ENTER para voltar ao menu */
-        while(readch() != '\n');
+        /* Mostra tela apropriada */
+        if(!aliens_exist(aliens))
+            show_victory();
+        else
+            show_game_over();
+
+        while(readch()!='\n');
     }
 
     screenDestroy();
