@@ -116,14 +116,18 @@ void draw_game(Alien aliens[ALIEN_ROWS][ALIEN_COLS], Bullet* bullets, int ship_x
 void show_menu(int* delay_us) {
   screenInit(0);
   printf("=== TERMINAL INVADERS ===\n");
-  printf("1 - Fácil (20 FPS)\n");
-  printf("2 - Médio (30 FPS)\n");
-  printf("3 - Difícil (40 FPS)\n");
+  printf("1 - Fácil (10 FPS)\n");
+  printf("2 - Médio (15 FPS)\n");
+  printf("3 - Difícil (20 FPS)\n");
   printf("Q - Sair\n");
   int k;
-  do { k = readch(); } while(k!='1'&&k!='2'&&k!='3'&&k!='q'&&k!='Q');
-  if(k=='q'||k=='Q') { *delay_us = -1; return; }
-  *delay_us = (k=='1'?50000:(k=='2'?33333:25000));
+  do { k = readch(); } while(k!='1' && k!='2' && k!='3' && k!='q' && k!='Q');
+  if(k=='q' || k=='Q') { *delay_us = -1; return; }
+  switch(k) {
+    case '1': *delay_us = 100000; break;  // 10 FPS
+    case '2': *delay_us = 66667;  break;  // 15 FPS
+    case '3': *delay_us = 50000;  break;  // 20 FPS
+  }
 }
 
 // Tela de Game Over
