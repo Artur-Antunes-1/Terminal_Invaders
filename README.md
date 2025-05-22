@@ -76,7 +76,7 @@ TerminalInvaders/
 * **Email**: [aas4@cesar.school](mailto:aas4@cesar.school)
 
 ## Apresentação
-[Terminal_Invaders.PDF](https://drive.google.com/file/d/13-RSm4kj73Sk1NbsQGAJk4PL3JKoMpxG/view?usp=sharing)
+[Terminal_Invaders.pdf](https://drive.google.com/file/d/13-RSm4kj73Sk1NbsQGAJk4PL3JKoMpxG/view?usp=sharing)
 
 ## 🎮 Demonstração
 ![Demonstração](assets/demo.gif)
