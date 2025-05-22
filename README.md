@@ -40,7 +40,7 @@ Este projeto atende aos seguintes requisitos e conceitos:
 1. Clone este repositório:
 
    ```bash
-   git clone <URL-do-repositório>
+   git clone <https://github.com/Artur-Antunes-1/Terminal_Invaders.git>
    cd TerminalInvaders
    ```
 2. Compile usando `make`:
